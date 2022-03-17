@@ -12,7 +12,7 @@ __constant__ int d_K;
 __constant__ int d_wGrid;
 __constant__ int d_tileWidth;
 
-__global__ void conv_forward_kernel0(
+__global__ void naive_conv_forward(
 	float *y, const float *x, const float *k, const int B, const int M, 
 	const int C, const int H, const int W, const int K
 )
@@ -49,7 +49,7 @@ __global__ void conv_forward_kernel0(
 }
 
 
-__global__ void conv_forward_kernel1(float *y, const float *x)
+__global__ void constantMemory_conv_forward(float *y, const float *x)
 {	int H_out = d_H - d_K + 1;
     int W_out = d_W - d_K + 1;
 	
@@ -81,7 +81,7 @@ __global__ void conv_forward_kernel1(float *y, const float *x)
 }
 
 
-__global__ void conv_forward_kernel(float *y, const float *x)
+__global__ void tiling_conv_forward(float *y, const float *x)
 {	int H_out = d_H - d_K + 1;
     int W_out = d_W - d_K + 1;
 	
@@ -113,7 +113,7 @@ __global__ void conv_forward_kernel(float *y, const float *x)
 	#undef d_k4d
 }
 
-__global__ void conv_forward_kernel(float *__restrict__ y, const float *__restrict__ x)
+__global__ void sharedMemory_tiling_conv_forward(float *__restrict__ y, const float *__restrict__ x)
 {	__shared__ float d_bmx[25][25];
 	int H_out = d_H - d_K + 1;
     int W_out = d_W - d_K + 1;
@@ -206,7 +206,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
 	dim3 block_size(tileWidth, tileWidth, 1); 
   	dim3 grid_size(M, Y, B);
 	
-	conv_forward_kernel<<< grid_size, block_size >>>(device_y, device_x);
+	sharedMemory_tiling_conv_forward<<< grid_size, block_size >>>(device_y, device_x);
 	cudaDeviceSynchronize();
 	
 	// Useful snippet for error checking
